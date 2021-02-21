@@ -1,0 +1,242 @@
+  /*
+  default state and updated state, state is immutable so use setCrew to remake/change state
+
+  useState always returns 2 values, currentState at every iteration of render function, then a function that 
+  can update that state
+
+  const [count, setCount] = useState(4) --> this 4/state gets run every time this component renders
+
+  can use a function version for values you want to run only once
+  const [count, setCount] = useState(() => thisFuncWillRunOnce())
+  console.log('this one runs once')
+
+  function decrementCount() {
+    setCount(prevCount => prevCount - 1)
+  }
+
+  if you use an object in your state unlike class components if you use setState in functional/hooks it does not automatically combine instead 
+  just returns what you update unless you use ...spread operator
+  function decrementCount() {
+    setState(prevState => {
+      return {...prevState, count: prevState.count - 1}
+    })
+  }
+  Generally a better way to do this would be to have [state, setState] useState for each object aka use hooks
+  for all your states
+  const [count, setCount] = useState(4)
+  const [theme, setTheme] = useState('blue')
+  */
+
+  /*
+  useEffect hooks
+  function App () {
+    const [resourceType, setResourceType] = useState('posts')
+    const [items, setItems] = useState([]_)
+
+    useEffect(() => {
+      this occurs everytime component renders
+      console.log('renders everytime') OR
+      if you use array 
+      console.log('renders when array value changes')
+    },[resourceType] )
+    whatever is passed into array, hook runs when that value changes [resource type]
+    when array is [] basically means run onmount since empty array never changes on render
+
+    UseEffect with event listeners and cleanup
+    const handleResize = () => {
+      setWindowWidth(window.innerWidth) 
+    }
+
+    useEffect(() => {
+    window.addEventListener('resize', handleResize) 
+
+    return () => {
+      window.removeEventListener('resize', handleResize)
+    }
+  }, [])
+  above have an event listener that gets added when the component mounts, however want to remove eventlistener
+  when component unmounts and can be called cleanup. Using the return in useEffect makes it basically your cleanup, whenever useEffect gets ran cleanup runs 1st each time besides the intial; can be used to unsub from apis etc, always runs if component runs once.
+
+
+    example: 
+    useEffect(() => {
+      fetch(`https://jsonplaceholder.typicode.com/${resourceType}`)
+        .then(res => res.json())
+        .then(json => setItems(json))
+    }, [resourceType])
+    return (
+      <div>
+      <button onClick={() => setResourceType('posts')}>Posts</button>
+      {items.map(item => {
+        return <pre>{JSON.stringify(item)}</pre>
+      })}
+    )
+  }
+
+  */
+
+  /* 
+  useRef hook
+  const [renderCount, setRenderCount] = useState(0)
+
+  useEffect(() => {
+    setRenderCount(prevRenderCount => prevRenderCount + 1) 
+  })
+  above doesn't work because each time you update your state (rendercount) the component re-renders from useeffect
+  A way to avoid this would be useRef -> refs persist between renders of component but unlike state it doesn't cause state to update/re-render upon changing. 
+
+  const renderCount = useRef(1)
+  useRef returns an object with a current property { current: 1}
+  useEffect(() -> {
+    renderCount.current = renderCount.current + 1
+
+    return ( 
+      <div>
+      I've rendered {renderCount.current} times
+      <div>
+    )
+  })
+
+  biggest case for useRef is referencing elements in HTML 
+
+  const inputRef = useRef()
+
+  function focus() {
+    inputRef.current.focus()
+    inputRef.current.value = 'Some value' (remember this is just manually setting value of inputRef which is bad since it doesn't update your state)
+  }
+
+  <div>
+  <input ref={inputRef} value={name} onChange={e => setName(s.target.value)}/>
+  <div>My name is {name}</div>
+  <button onClick={focus}>focus</button>
+  </div>
+
+
+  good for storing previous value of states
+  const [name, setName] = useState('')
+  const prevName = useRef('')
+
+  useEffect(() => {
+    prevName.current = name
+  }, [name])
+
+  return {
+    <input value = {name} onChange = {e => setName(e.target.value)}/>
+    <div>My name is {name} and it used to be {prevName.current}/>
+  }
+
+  useRef best for accessing DOM elements and presisting values between renders in functional components
+
+
+
+  useMemo basically like memoization caching values to avoid recalculating functions
+  const doubleNumber = useMemo(() => {
+    return slowFunction(number)
+  }, [number])
+  This makes it so slowFunction only reruns when the number changes not on state re-renders 
+  Careful not to overuse useMemo since it is caching a new value everytime and it gets everytime to check and see if number is changed so memory/performance overheads, only use with really big/long running functions
+
+  const themeStyles = {
+    backgroundColor: dark ? 'black' : 'white',
+    color: dark ? 'white' : 'black'
+  }
+
+  useEffect(() => {
+    console.log('Theme Changed')
+  }, [themeStyles])
+
+  whenever number is changed theme changed gets printed out b/c a new themeStyle object is being created each time function is run, same object diff ref, this is another case for useMemo so you can reference same object
+
+  const themeStyles = useMemo(() => {
+    return {
+      backgroundColor: dark ? 'black' : 'white',
+      color: dark ? 'white' : 'black'
+    }
+  }, [dark])
+  now the object is wrapped in memoization so unless dark theme changes, it won't update reference unless contents of object change instead on every render
+
+  useCallback very similar to useMemo doesn't rerun entire function unless parameters change
+
+  const getItems = () => {
+    return [number, number + 1, number + 2]
+  } updates everytime
+
+
+  const getItems = useCallback(() => {
+    return [number, number + 1, number + 2]
+  }, [number]) updates only when number changes/ not on rerender
+
+  useMemo takes a function and returns the return value of function, useCallback returns entire function
+  can add in parameters as well from other components
+  const getItems = useCallback ((incrementor) => {
+    return[number + incrementor, number + 1 + incrementor, number + 2 + incrementor]
+  }, [number])
+  **in other component
+  useEffect(() => {
+    setItems(getItems(1))
+  }, [getItems])
+
+useReducer another way to manage state re-render state/ returns an array
+reducer calls a function on your state
+function reducer(state, action) {  (takes current state and an action -> dispatch)
+
+  (can use switch statement to change between different types for diff states to change)
+  switch (action.type) {
+    case 'increment':
+      return { count: state.count + 1 }
+    case 'decrement':
+      return { count: state.count - 1}
+    (good to have default case where you can return error msg or default state)
+    default: 
+      return state
+
+      our state can only change in these predetermined ways great way to keep track
+  }
+
+  should return new updated state
+  return { count: state.count + 1}
+}
+
+instead of using hard coded strings for your cases, good practice to make global non changing variable actions:
+
+const ACTIONS = {
+  INCREMENT: 'increment',
+  DECREMENT: 'decrement',
+}
+function reducer(state, action) {
+ switch (action.type) {
+    case ACTIONS.INCREMENT:
+      return { count: state.count + 1 }
+    case ACTIONS.DECREMENT:
+      return { count: state.count - 1}
+    default: 
+      return state
+  }
+}
+function App () {
+  const [state, dispatch] = useReducer(reducer, {count: 0})
+  function increment() {
+    dispatch({ type: ACTIONS.INCREMENT })
+  }
+  function decrement() {
+    dispatch({ type: ACTIONS.DECREMENT})
+  }
+  gives persistence across code, can change all in one place
+}
+
+
+  const [state, dispatch] = useReducer(reducer, { count: 0} ) 
+  funct dispatch calls your reducer function given certain parameters to update state
+
+  function increment() {
+    generally to get more use out of reducer function you can have types to update different states
+    dispatch({ type: 'increment' })
+  }
+
+  remeber useReducer is good for complex state, nested components passing props down
+  // TO DO EXAMPLE
+  create-react-app react-ajax-exercise
+ 2396  git remote add origin https://git.generalassemb.ly/epenn92/react-ajax-exercise.git
+ 2397  git commit -m "app"
+  */
